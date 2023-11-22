@@ -1,7 +1,7 @@
 ---
 title: "Academic Article Organizer and Analyzer"
 author: "Your Name"
-date: "date"
+date: "2023-01-04"
 output: html_document
 ---
 
@@ -99,3 +99,42 @@ old.names <- (old_names$article_title)
 
 # Renaming files
 file.rename(from = paste0(preprocess_path, old.names), to = paste0(preprocess
+
+_path, new_names))
+```
+
+```{r Mendeley citation analysis}
+# Loading and processing citation data
+library(bib2df)
+
+citation_path <- "path/to/your/citation/file"
+thesis_articles <- as_tibble(bib2df(citation_path))
+thesis_articles <- thesis_articles %>% 
+  select(CATEGORY, BIBTEXKEY, AUTHOR, JOURNAL, PUBLISHER, TITLE, VOLUME, YEAR, ABSTRACT, DOI, ISSN, KEYWORDS, URL, ISBN)
+
+# Processing abstracts for citation analysis
+abstract <- thesis_articles %>% select(TITLE, BIBTEXKEY, ABSTRACT)
+colnames(abstract) <- c("title", "bibtexkey", "abstract")
+abstract <- data.frame(tibble::rownames_to_column(abstract, "doc_id"), stringsAsFactors=FALSE)
+abstract_f <- unnest_sentences_(abstract, "sents", "abstract")
+
+# Cleaning and formatting abstract sentences
+abstract_f$sents <- trimws(abstract_f$sents)
+abstract_f[is.na(abstract_f)] <- ""
+abstract_f$sents <- str_to_sentence(abstract_f$sents)
+abstract_f$title <- str_to_title(abstract_f$title)
+
+# Cleaning and formatting the main thesis articles data
+thesis_articles <- as.data.frame(lapply(thesis_articles, as.character), stringsAsFactors=FALSE)
+thesis_articles$AUTHOR <- gsub("c()", "", thesis_articles$AUTHOR)
+thesis_articles$TITLE <- str_to_title(thesis_articles$TITLE)
+thesis_articles$ABSTRACT <- str_to_sentence(thesis_articles$ABSTRACT)
+thesis_articles$KEYWORDS <- trimws(tolower(thesis_articles$KEYWORDS))
+
+# Writing the processed data to Excel files
+output_path <- "path/to/your/output/directory"
+write.xlsx(abstract_f, file.path(output_path, "thesis_article_analysis_v4.xlsx"), 
+           sheetName="abstract_sentence_classification", append=TRUE, row.names=FALSE)
+write.xlsx(thesis_articles, file.path(output_path, "thesis_article_analysis_v4.xlsx"), 
+           sheetName="thesis_articles", append=TRUE, row.names=FALSE)
+```
