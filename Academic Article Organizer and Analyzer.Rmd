@@ -1,0 +1,101 @@
+---
+title: "Academic Article Organizer and Analyzer"
+author: "Your Name"
+date: "date"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# Clearing the workspace and setting global chunk options
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Load all packages}
+# Loading necessary libraries
+library(RPostgreSQL)
+library(dplyr)
+library(dbplyr)
+library(data.table)
+library(lubridate)
+library(reshape2)
+library(stringr)
+library(tidyverse)
+library(readxl)
+library(knitr)
+library(ggplot2)
+library(udpipe)
+```
+
+```{r Get a list of existing articles in PDF format}
+# Define the base path for articles
+base_path <- "path/to/your/articles/directory"
+
+# Listing PDF files in a specific directory
+file_list <- as.data.frame(list.files(file.path(base_path, "Deep Learning-Based Recommendation System Systematic Review and Classification"), 
+                                      all.files = TRUE, 
+                                      full.names = FALSE))
+colnames(file_list) <- c("article_title")
+
+# Listing PDF files in the article classification directory
+article_list <- as.data.frame(list.files(file.path(base_path, "Article Classification"), 
+                                         pattern = ".pdf$", 
+                                         full.names = TRUE, 
+                                         recursive = TRUE, 
+                                         include.dirs = TRUE))
+
+# Getting a list of reviewed articles
+old_names <- as.data.frame(list.files(file.path(base_path, "Reviewed Articles/Thesis"), 
+                                      all.files = TRUE, 
+                                      full.names = FALSE))
+colnames(old_names) <- c("article_title")
+
+# Cleaning the file names and removing unwanted characters
+old_names <- old_names %>% 
+  filter(!article_title %in% c(".", "..", ".DS_Store"))
+
+new_names <- old_names
+new_names$article_title <- gsub("[[:punct:]]", " ", new_names$article_title)
+new_names$article_title <- gsub("[[:digit:]]+", " ", new_names$article_title)
+new_names$article_title <- lapply(new_names$article_title, tolower)
+new_names$article_title <- trimws(new_names$article_title)
+new_names$article_title <- gsub("\\s+", " ", new_names$article_title)
+new_names$article_title <- gsub(" +"," ",new_names$article_title) 
+new_names$article_title<- str_to_title(new_names$article_title)
+new_names$article_title <- gsub("E Commerce","eCommerce",new_names$article_title) 
+new_names$article_title <- gsub(" Pdf","",new_names$article_title) 
+new_names <- new_names
+new_names <- paste0(new_names$article_title, '.pdf')
+
+# Renaming the files in the specified directory
+old.names <- (old_names$article_title)
+thesis_path <- file.path(base_path, "Reviewed Articles/Thesis")
+file.rename(from = paste0(thesis_path, old.names), to = paste0(thesis_path, new_names))
+```
+
+```{r Rename the pre-processing files}
+# Renaming files in the pre-processing directory
+preprocess_path <- file.path(base_path, "pre-processing/round 2")
+
+old_names <- as.data.frame(list.files(preprocess_path, full.names = FALSE))
+colnames(old_names) <- c("article_title")
+
+# Cleaning and modifying file names
+new_names <- old_names
+new_names$article_title  <- gsub("_.*","",new_names$article_title)
+new_names$article_title <- gsub("[[:punct:]]", " ", new_names$article_title)
+new_names$article_title <- gsub("[[:digit:]]+", " ", new_names$article_title)
+new_names$article_title <- lapply(new_names$article_title, tolower)
+new_names$article_title <- trimws(new_names$article_title)
+new_names$article_title <- gsub("\\s+", " ", new_names$article_title)
+new_names$article_title <- gsub(" +"," ",new_names$article_title) 
+new_names$article_title <- gsub(" pdf", "", new_names$article_title)
+new_names$article_title<- str_to_sentence(new_names$article_title)
+new_names$article_title <- gsub("e commerce|ecommerce","e-commerce",new_names$article_title) 
+new_names$article_title <- gsub("E commerce|Ecommerce","E-commerce",new_names$article_title) 
+new_names <- new_names
+new_names <- paste0(new_names$article_title, '.pdf')
+old.names <- (old_names$article_title)
+
+# Renaming files
+file.rename(from = paste0(preprocess_path, old.names), to = paste0(preprocess
